@@ -25,13 +25,18 @@ fn get_trending_url(language: &str, period: &str) -> String {
     )
 }
 
-fn get_trending_repositories(
+async fn get_trending_repositories(
     language: &str,
     period: &str,
 ) -> Result<Vec<Repository>, Box<dyn Error>> {
-    let url = get_trending_url(language, period);
+    let client = reqwest::Client::new();
 
-    let body = reqwest::blocking::get(&url)?.text()?;
+    let resp = client
+        .get(get_trending_url(language, period))
+        .send()
+        .await?;
+
+    let body = resp.text().await.unwrap_or("".to_string());
 
     let mut repositories = Vec::new();
 
@@ -59,18 +64,18 @@ fn get_trending_repositories(
     Ok(repositories)
 }
 
-pub fn run_trending(language: &str, period: &str) -> Result<(), Box<dyn Error>> {
-    let r = get_trending_repositories(language, period);
+pub async fn run_trending(language: &str, period: &str) {
+    let repositories = get_trending_repositories(language, period).await;
 
-    r.map(|repositories| {
-        for repo in repositories {
-            println!(
-                "{} {} - {}",
-                Colour::RGB(150, 150, 150)
-                    .paint(format!("[{}]", repo.language.unwrap_or("unknown".into()))),
-                Colour::Green.paint(repo.name),
-                Colour::Yellow.paint(repo.description.unwrap_or("no description".to_string()))
-            );
-        }
-    })
+    let repositories = repositories.unwrap_or(Vec::new());
+
+    for repo in repositories {
+        println!(
+            "{} {} - {}",
+            Colour::RGB(150, 150, 150)
+                .paint(format!("[{}]", repo.language.unwrap_or("unknown".into()))),
+            Colour::Green.paint(repo.name),
+            Colour::Yellow.paint(repo.description.unwrap_or("no description".to_string()))
+        );
+    }
 }

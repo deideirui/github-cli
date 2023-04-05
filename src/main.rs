@@ -41,7 +41,7 @@ async fn main() {
 
     match opt.command {
         Command::Trending { language, period } => {
-            features::trending::run_trending(&language, &period).unwrap()
+            features::trending::run_trending(&language, &period).await
         }
         Command::Pulls { repository, limit } => {
             features::pulls::run_pulls(&repository, limit).await
